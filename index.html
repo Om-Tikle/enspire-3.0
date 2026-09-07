@@ -120,6 +120,10 @@
     display:flex; align-items:center; justify-content:center;
     opacity:1; transition:opacity .6s ease;
   }
+  @media (max-width: 768px) {
+    #theme-reveal, #portal-wrap, .hdr-logo-left { display: none !important; }
+    #hero-bg-video { opacity: 0 !important; position: fixed !important; z-index: -999 !important; pointer-events: none !important; }
+  }
   #theme-reveal.hide{ opacity:0; pointer-events:none; }
   #theme-video{
     width:100%; height:100%; object-fit:cover; display:block;
@@ -178,17 +182,17 @@
   }
   .hdr-college{
     font-family:'IBM Plex Mono',monospace;
-    font-size:clamp(12px, 2vw, 22px); letter-spacing:0.15em; font-weight:700;
-    color:var(--signal); text-transform:uppercase;
-    text-shadow: 0 0 10px rgba(77,255,161,0.8), 0 0 25px rgba(77,255,161,0.4);
-    animation: txt-glow 2.8s ease-in-out infinite;
+    font-size:clamp(9px, 1.2vw, 15px); letter-spacing:0.15em; font-weight:700;
+    color:var(--ash); text-transform:uppercase;
+    text-shadow: 0 0 8px rgba(159,179,171,0.3);
     white-space:nowrap;
   }
   .hdr-dept{
     font-family:'IBM Plex Mono',monospace;
-    font-size:clamp(9px, 1.2vw, 15px); letter-spacing:0.25em; font-weight:500;
-    color:var(--ash); text-transform:uppercase;
-    text-shadow: 0 0 8px rgba(77,255,161,0.3);
+    font-size:clamp(14px, 2.5vw, 26px); letter-spacing:0.25em; font-weight:500;
+    color:var(--signal); text-transform:uppercase;
+    text-shadow: 0 0 10px rgba(77,255,161,0.8), 0 0 25px rgba(77,255,161,0.4);
+    animation: txt-glow 2.8s ease-in-out infinite;
     white-space:nowrap;
   }
   @keyframes txt-glow{
@@ -199,11 +203,10 @@
     .hdr-logo-left{ height:38px; position:static; margin-right:10px; }
   }
   @media (max-width:480px){
-    #collegeHeader{ height:65px; padding:0 10px; justify-content:flex-start; }
-    .hdr-logo-left{ height:30px; }
-    .hdr-college{ font-size:10px; letter-spacing:0.1em; }
-    .hdr-dept{ display:none; }
-    header.nav{ top:65px; }
+    #collegeHeader{ height:75px; padding:4px 10px; justify-content:center; text-align:center; gap:4px; }
+    .hdr-college{ font-size:9px; letter-spacing:0.1em; white-space:normal; line-height:1.2; padding:0 5px; }
+    .hdr-dept{ font-size:14px; letter-spacing:0.15em; white-space:normal; line-height:1.2; padding:0 10px; }
+    header.nav{ top:75px; }
   }
   header.nav.show{ opacity:1; pointer-events:auto; }
   header.nav.scrolled{ top:0; border-color:var(--archive-line); background:rgba(4,7,10,0.75); backdrop-filter: blur(6px); }
@@ -710,8 +713,8 @@
 <div id="collegeHeader">
   <img class="hdr-logo-left" src="assets/E_3.0%20bg%20removed.png" alt="Enspire 3.0" onerror="this.style.display='none'">
   <div class="hdr-text">
-    <div class="hdr-college">St. Vincent Pallotti College of Engineering &amp; Technology, Nagpur</div>
-    <div class="hdr-dept">Department of Computer Science &amp; Business Systems</div>
+    <div class="hdr-dept">St. Vincent Pallotti College of Engineering &amp; Technology, Nagpur</div>
+    <div class="hdr-college">Department of Computer Science &amp; Business Systems</div>
   </div>
 </div>
 
@@ -878,7 +881,7 @@
     </div>
     <div class="team-card">
       <div class="team-photo-ring">
-        <img src="https://res.cloudinary.com/husaxgo3/image/upload/v1788769322/file_00000000bafc8211bee897b20bc358b1_1.png" alt="Sudeep Kuralkar" loading="lazy">
+        <img src="https://res.cloudinary.com/dwji50nl9/image/upload/v1788779856/123_ejp5pp.png" alt="Sudeep Kuralkar" loading="lazy">
       </div>
       <div class="team-name">Sudeep Kuralkar</div>
       <div class="team-role mono">DEV TEAM</div>
@@ -1034,42 +1037,47 @@ setTimeout(dismissPreloader, 2500); // guaranteed unlock no matter what
     playBgAudio();
   }
 
-  // Play slightly faster + muted (required for autoplay).
-  videoEl.addEventListener('play', ()=>{
-    videoEl.playbackRate = 1.2;
-  }, { once: true });
+  // --- MOBILE SKIP LOGIC ---
+  if (window.innerWidth <= 768) {
+    dismissReveal();
+  } else {
+    // Play slightly faster + muted (required for autoplay).
+    videoEl.addEventListener('play', ()=>{
+      videoEl.playbackRate = 1.2;
+    }, { once: true });
 
-  // Sound toggle — muted autoplay is required by browsers; user taps to hear.
-  soundBtn.addEventListener('click', ()=>{
-    if(videoEl.muted){
-      videoEl.muted = false;
-      videoEl.play().catch(()=>{ videoEl.muted = true; soundBtn.textContent = '🔇 TAP FOR SOUND'; return; });
-      soundBtn.textContent = '🔊 SOUND ON';
-    } else {
-      videoEl.muted = true;
-      soundBtn.textContent = '🔇 TAP FOR SOUND';
-    }
-  });
+    // Sound toggle — muted autoplay is required by browsers; user taps to hear.
+    soundBtn.addEventListener('click', ()=>{
+      if(videoEl.muted){
+        videoEl.muted = false;
+        videoEl.play().catch(()=>{ videoEl.muted = true; soundBtn.textContent = '🔇 TAP FOR SOUND'; return; });
+        soundBtn.textContent = '🔊 SOUND ON';
+      } else {
+        videoEl.muted = true;
+        soundBtn.textContent = '🔇 TAP FOR SOUND';
+      }
+    });
 
-  // Dismiss when video finishes naturally.
-  videoEl.addEventListener('ended', dismissReveal);
+    // Dismiss when video finishes naturally.
+    videoEl.addEventListener('ended', dismissReveal);
 
-  // If the file is missing or broken, skip gracefully.
-  videoEl.addEventListener('error', ()=>{ setTimeout(dismissReveal, 500); });
+    // If the file is missing or broken, skip gracefully.
+    videoEl.addEventListener('error', ()=>{ setTimeout(dismissReveal, 500); });
 
-  // Skip button.
-  skipBtn.addEventListener('click', dismissReveal);
+    // Skip button.
+    skipBtn.addEventListener('click', dismissReveal);
 
-  // Hard cutoff: auto-close after 12 seconds and go to main page.
-  setTimeout(dismissReveal, 12000);
+    // Hard cutoff: auto-close after 12 seconds and go to main page.
+    setTimeout(dismissReveal, 12000);
+  }
 })();
 
 /* ---------- Nav background on scroll (works with or without GSAP) ---------- */
 if(HAS_GSAP){
   ScrollTrigger.create({
-    start: 100, end: 99999,
+    start: 2, end: 99999,
     onUpdate: (self)=>{ 
-      const isScrolled = self.scroll() > 80;
+      const isScrolled = self.scroll() > 10;
       navEl.classList.toggle('scrolled', isScrolled); 
       const hdr = document.getElementById('collegeHeader');
       if(hdr) hdr.classList.toggle('hidden-by-scroll', isScrolled);
@@ -1077,7 +1085,7 @@ if(HAS_GSAP){
   });
 } else {
   window.addEventListener('scroll', ()=>{
-    const isScrolled = window.scrollY > 80;
+    const isScrolled = window.scrollY > 10;
     navEl.classList.toggle('scrolled', isScrolled);
     const hdr = document.getElementById('collegeHeader');
     if(hdr) hdr.classList.toggle('hidden-by-scroll', isScrolled);
@@ -1204,6 +1212,29 @@ setTimeout(function(){
     new THREE.MeshBasicMaterial({ color:0x4dffa1, wireframe:true, transparent:true, opacity:0.3 })
   );
   scene.add(orb);
+
+  // ---- Mobile: Video in 3D Space ----
+  if (window.innerWidth <= 768) {
+    const vid = document.getElementById('hero-bg-video');
+    if (vid) {
+      vid.play().catch(e => console.log('Video autoplay blocked:', e));
+      const vTex = new THREE.VideoTexture(vid);
+      vTex.minFilter = THREE.LinearFilter;
+      vTex.magFilter = THREE.LinearFilter;
+      
+      const aspect = W() / H();
+      // Giant background plane for the video deep in the 3D void
+      const vGeo = new THREE.PlaneGeometry(280 * aspect, 280);
+      const vMat = new THREE.MeshBasicMaterial({ map: vTex, depthWrite: false });
+      const vMesh = new THREE.Mesh(vGeo, vMat);
+      
+      // Place it far back so particles float in front of it
+      vMesh.position.z = -120;
+      // Mirror the horizontal rotation the user previously requested on the HTML video
+      vMesh.rotation.z = Math.PI / 2;
+      scene.add(vMesh);
+    }
+  }
 
   // ---- Pause when off-screen ----
   let visible = false;
