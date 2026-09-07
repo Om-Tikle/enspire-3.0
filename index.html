@@ -123,6 +123,7 @@
   #theme-reveal.hide{ opacity:0; pointer-events:none; }
   #theme-video{
     width:100%; height:100%; object-fit:cover; display:block;
+    filter: blur(2px);
   }
   #reveal-skip{
     position:absolute; bottom:28px; right:28px;
@@ -141,26 +142,71 @@
 
   /* ---------- nav ---------- */
   header.nav{
-    position:fixed; top:56px; left:0; right:0; z-index:500;
+    position:fixed; top:85px; left:0; right:0; z-index:500;
     display:flex; align-items:center; justify-content:space-between;
     padding:16px clamp(20px,4vw,56px);
     opacity:0; pointer-events:none;
     border-bottom:1px solid transparent;
-    transition: border-color .4s ease, background .4s ease;
+    transition: border-color .4s ease, background .4s ease, top .5s cubic-bezier(0.2,0,0.1,1);
   }
   /* ---------- College header strip (sits above the nav) ---------- */
   #collegeHeader{
     position:fixed; top:0; left:0; right:0; z-index:600;
-    background:#0b0b0d; border-bottom:1px solid var(--archive-line);
+    background: linear-gradient(180deg, rgba(4,7,10,0.98) 0%, rgba(8,15,12,0.95) 100%);
+    border-bottom:1px solid var(--archive-line);
     display:flex; align-items:center; justify-content:center;
-    padding:8px 16px; height:56px;
-    opacity:0; pointer-events:none; transition: opacity .4s ease;
+    padding:0 clamp(14px,3vw,40px); height:85px; gap:16px;
+    opacity:0; pointer-events:none; transition: opacity .6s ease, transform .5s cubic-bezier(0.2,0,0.1,1);
   }
-  #collegeHeader.show{ opacity:1; }
-  #collegeHeader img{ max-height:38px; width:auto; display:block; }
-  @media (max-width:480px){ #collegeHeader img{ max-height:28px; } #collegeHeader{ height:44px; } header.nav{ top:44px; } }
+  #collegeHeader.show{ opacity:1; pointer-events:auto; }
+  #collegeHeader.hidden-by-scroll{ opacity:0 !important; pointer-events:none; transform: translateY(-100%); }
+
+  .hdr-logo-left{
+    position:absolute; left:clamp(14px,3vw,40px);
+    height:55px; width:auto;
+    filter: drop-shadow(0 0 8px rgba(77,255,161,0.85)) drop-shadow(0 0 20px rgba(77,255,161,0.45));
+    animation: logo-glow-pulse 3s ease-in-out infinite;
+  }
+  @keyframes logo-glow-pulse{
+    0%,100%{ filter: drop-shadow(0 0 7px rgba(77,255,161,0.65)) drop-shadow(0 0 18px rgba(77,255,161,0.3)); }
+    50%{ filter: drop-shadow(0 0 14px rgba(77,255,161,1)) drop-shadow(0 0 32px rgba(77,255,161,0.65)) drop-shadow(0 0 50px rgba(77,255,161,0.25)); }
+  }
+
+  /* Text block */
+  .hdr-text{
+    display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  }
+  .hdr-college{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(12px, 2vw, 22px); letter-spacing:0.15em; font-weight:700;
+    color:var(--signal); text-transform:uppercase;
+    text-shadow: 0 0 10px rgba(77,255,161,0.8), 0 0 25px rgba(77,255,161,0.4);
+    animation: txt-glow 2.8s ease-in-out infinite;
+    white-space:nowrap;
+  }
+  .hdr-dept{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(9px, 1.2vw, 15px); letter-spacing:0.25em; font-weight:500;
+    color:var(--ash); text-transform:uppercase;
+    text-shadow: 0 0 8px rgba(77,255,161,0.3);
+    white-space:nowrap;
+  }
+  @keyframes txt-glow{
+    0%,100%{ text-shadow: 0 0 8px rgba(77,255,161,0.6), 0 0 20px rgba(77,255,161,0.3); }
+    50%{ text-shadow: 0 0 15px rgba(77,255,161,1), 0 0 35px rgba(77,255,161,0.6), 0 0 55px rgba(77,255,161,0.25); }
+  }
+  @media (max-width:640px){
+    .hdr-logo-left{ height:38px; position:static; margin-right:10px; }
+  }
+  @media (max-width:480px){
+    #collegeHeader{ height:65px; padding:0 10px; justify-content:flex-start; }
+    .hdr-logo-left{ height:30px; }
+    .hdr-college{ font-size:10px; letter-spacing:0.1em; }
+    .hdr-dept{ display:none; }
+    header.nav{ top:65px; }
+  }
   header.nav.show{ opacity:1; pointer-events:auto; }
-  header.nav.scrolled{ border-color:var(--archive-line); background:rgba(4,7,10,0.75); backdrop-filter: blur(6px); }
+  header.nav.scrolled{ top:0; border-color:var(--archive-line); background:rgba(4,7,10,0.75); backdrop-filter: blur(6px); }
   .nav-mark{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.08em; color:var(--signal); }
   .nav-mark b{ color:var(--text); font-weight:500; }
   .nav-links{ display:flex; gap:28px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.06em; color:var(--ash); }
@@ -172,9 +218,7 @@
   #hero{
     position:relative; height:100svh; width:100%;
     display:flex; align-items:center; justify-content:center;
-    background:
-      radial-gradient(1200px 700px at 50% 40%, rgba(15,42,28,0.55), transparent 70%),
-      var(--void);
+    background: transparent; /* video is the background */
     overflow:hidden;
   }
   .hero-frame{
@@ -196,7 +240,53 @@
 
   #portal-wrap{
     position:relative; display:flex; flex-direction:column; align-items:center; gap:30px;
+    z-index:2; transition: opacity 0.25s ease;
   }
+  #portal-wrap.clicked{ opacity:0; pointer-events:none; }
+  /* ---- Hero background video: inside hero section ---- */
+  #hero-bg-video{
+    position:absolute;
+    top:50%; left:50%;
+    width:100vh; height:100vw;
+    transform:translate(-50%,-50%) rotate(90deg) scaleX(-1);
+    object-fit:cover;
+    filter: blur(8px) brightness(0.6);
+    transition: filter 1.5s ease;
+    z-index:0;
+    pointer-events:none;
+  }
+  #hero-bg-video.bloomed{
+    filter: blur(0px) brightness(1);
+  }
+  /* Hero content must sit above the video */
+  .hero-frame, .hero-tag, #portal-wrap, .logo-watermark{
+    position:relative; z-index:2;
+  }
+
+  /* Ambient overlay — hidden, video shows natural colors */
+  #hero-ambient{
+    display:none;
+  }
+
+  /* Boom flash on button click */
+  #hero-boom{
+    position:fixed; inset:0; z-index:9600; pointer-events:none;
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(255,255,255,0.95) 0%,
+      rgba(77,255,161,0.85) 20%,
+      rgba(77,255,161,0.4) 45%,
+      transparent 70%);
+    opacity:0;
+  }
+  @keyframes boom-blast{
+    0%  { opacity:0;   transform:scale(0.3); }
+    8%  { opacity:1;   transform:scale(0.9); }
+    18% { opacity:0.9; transform:scale(1.1); }
+    100%{ opacity:0;   transform:scale(2.8); }
+  }
+  #hero-boom.fire{ animation: boom-blast 1.1s cubic-bezier(.2,0,.1,1) forwards; }
+
+  /* Portal orb core */
   #portal{
     width:150px; height:150px; border-radius:50%;
     background: radial-gradient(circle, rgba(77,255,161,0.9) 0%, rgba(77,255,161,0.25) 35%, transparent 70%);
@@ -213,6 +303,20 @@
     0%,100%{ transform:scale(1); opacity:0.7; }
     50%{ transform:scale(1.18); opacity:0.15; }
   }
+  .hero-sub{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash);
+    letter-spacing:0.1em; position:relative; z-index:2;
+  }
+
+  /* Enhanced portal outer rings */
+  #portal-ring-a, #portal-ring-b{
+    position:absolute; border-radius:50%; border:1px solid rgba(77,255,161,0.25);
+    pointer-events:none;
+  }
+  #portal-ring-a{ inset:-30px; animation: ring-pulse 3s ease-in-out 0.5s infinite; }
+  #portal-ring-b{ inset:-60px; animation: ring-pulse 3s ease-in-out 1s infinite; }
+
+  /* Enter button glow pulse */
   #enter-btn{
     font-family:'IBM Plex Mono',monospace;
     font-size:13px; letter-spacing:0.2em;
@@ -220,15 +324,16 @@
     border:none; padding:13px 30px;
     cursor:pointer;
     position:relative; z-index:2;
-    transition: transform .25s ease, box-shadow .25s ease;
+    box-shadow: 0 0 0 0 rgba(77,255,161,0.5);
+    animation: btn-pulse 2.5s ease-in-out infinite;
+    transition: transform .25s ease;
   }
-  #enter-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 24px rgba(77,255,161,0.35); }
-  #enter-btn:active{ transform:translateY(0); }
-
-  .hero-sub{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash);
-    letter-spacing:0.1em;
+  @keyframes btn-pulse{
+    0%,100%{ box-shadow: 0 0 10px 1px rgba(255,255,255,0.12), 0 0 30px 0px rgba(255,255,255,0.06); }
+    50%{ box-shadow: 0 0 20px 4px rgba(255,255,255,0.22), 0 0 50px 6px rgba(255,255,255,0.08); }
   }
+  #enter-btn:hover{ transform:scale(1.05); }
+  #enter-btn:active{ transform:scale(0.97); }
 
   #flash{
     position:fixed; inset:0; background:var(--signal); z-index:9500;
@@ -238,10 +343,10 @@
   /* ================= TIMELINE VOID (pinned) ================= */
   #timeline-section{
     position:relative; height:100svh; width:100%;
-    background: var(--void);
+    background: transparent;
     overflow:hidden;
   }
-  #timeline-canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  #timeline-canvas{ position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; }
 
   .floaters{ position:absolute; inset:0; pointer-events:none; }
   .floater{
@@ -275,7 +380,7 @@
 
   /* ================= PROMOTION POSTERS ================= */
   #posters{
-    position:relative; padding: 140px 0 160px; background:var(--void);
+    position:relative; padding: 140px 0 160px; background: transparent;
     border-top:1px solid var(--archive-line);
   }
   .section-head{
@@ -294,11 +399,16 @@
   .section-head h2 span{ display:block; }
   .section-head p.mono{ color:var(--ash); font-size:13px; max-width:32ch; line-height:1.6; }
 
+  /* Featured (full-width 16:9) poster row */
+  .dossier-row--featured{
+    max-width:1180px; margin:0 auto 28px; padding:0 clamp(20px,4vw,56px);
+  }
+  /* 3-column sub-row for portrait event posters */
   .dossier-row{
     max-width:1180px; margin:0 auto; padding:0 clamp(20px,4vw,56px);
-    display:grid; grid-template-columns:repeat(4,1fr); gap:22px;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:22px;
   }
-  @media (max-width:980px){ .dossier-row{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:860px){ .dossier-row{ grid-template-columns:repeat(2,1fr);} }
   @media (max-width:560px){ .dossier-row{ grid-template-columns:1fr; } }
 
   .dossier{
@@ -306,14 +416,19 @@
     padding:16px 16px 20px; position:relative;
     box-shadow: 0 14px 30px rgba(0,0,0,0.45);
   }
+  /* Default portrait frame */
   .dossier .frame{
     border:1px dashed rgba(36,29,16,0.35); aspect-ratio: 3/4; margin-bottom:14px;
     display:flex; align-items:center; justify-content:center;
     background: repeating-linear-gradient(135deg, rgba(36,29,16,0.05) 0 8px, transparent 8px 16px);
     position:relative; overflow:hidden;
   }
+  /* 16:9 landscape frame for featured main poster */
+  .dossier--featured .frame{
+    aspect-ratio: 16/9;
+  }
   .dossier .frame span{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; opacity:0.55; text-align:center; }
-  .dossier .frame img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .dossier .frame img{ width:100%; height:100%; object-fit:contain; display:block; background:#1a1a1a; }
   .dossier .frame .card-logo-mark{ position:absolute; bottom:6px; right:6px; }
   .dossier h4{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.06em; margin-bottom:6px; }
   .dossier p{ font-size:12px; line-height:1.5; opacity:0.75; }
@@ -325,7 +440,7 @@
 
   /* ================= MISSION DATABASE ================= */
   #missions{
-    position:relative; padding:140px 0 160px; background:var(--panel);
+    position:relative; padding:140px 0 160px; background: transparent;
     border-top:1px solid var(--archive-line);
   }
   .mission-list{
@@ -365,7 +480,7 @@
   /* ================= FOOTER / CTA ================= */
   #closing{
     position:relative; padding:170px 20px 90px; text-align:center;
-    background: radial-gradient(900px 500px at 50% 0%, rgba(77,255,161,0.08), transparent 70%), var(--void);
+    background: radial-gradient(900px 500px at 50% 0%, rgba(77,255,161,0.08), transparent 70%);
     border-top:1px solid var(--archive-line);
   }
   #closing .mono{ color:var(--signal); font-size:12px; letter-spacing:0.15em; margin-bottom:20px; display:block; }
@@ -379,10 +494,79 @@
   footer{
     padding:34px 20px; text-align:center; font-family:'IBM Plex Mono',monospace;
     font-size:11px; color:var(--ash); letter-spacing:0.08em; border-top:1px solid var(--archive-line);
-    background:var(--void);
+    background: transparent;
   }
 
   @keyframes floatFallback{ from{ transform:translate(0,0);} to{ transform:translate(10px,-16px);} }
+
+  /* ================= TEAM SECTION ================= */
+  #team{
+    position:relative; padding:140px 0 160px; background: transparent;
+    border-top:1px solid var(--archive-line);
+  }
+  .team-grid{
+    max-width:1180px; margin:0 auto; padding:0 clamp(20px,4vw,56px);
+    display:grid; grid-template-columns:repeat(3,1fr); gap:32px;
+  }
+  @media(max-width:860px){ .team-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:540px){ .team-grid{ grid-template-columns:1fr; } }
+
+  .team-card{
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    padding:36px 24px 28px;
+    border:1px solid var(--archive-line);
+    background:linear-gradient(180deg,rgba(15,42,28,0.2),rgba(4,7,10,0.4));
+    position:relative; overflow:hidden;
+    transition: border-color .3s ease, box-shadow .3s ease;
+  }
+  .team-card::before{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 0%, rgba(77,255,161,0.07) 0%, transparent 65%);
+    opacity:0; transition:opacity .3s ease;
+  }
+  .team-card:hover{ border-color:var(--signal); box-shadow:0 0 40px rgba(77,255,161,0.08); }
+  .team-card:hover::before{ opacity:1; }
+
+  .team-photo-ring{
+    width:110px; height:110px; border-radius:50%;
+    border:1px solid var(--signal);
+    box-shadow: 0 0 0 4px rgba(77,255,161,0.08), 0 0 20px rgba(77,255,161,0.15);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; position:relative; flex-shrink:0;
+    background:var(--archive);
+  }
+  .team-photo-ring img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .team-photo-placeholder{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-size:22px;
+    color:var(--signal); opacity:0.6;
+    background:linear-gradient(135deg,rgba(15,42,28,0.8),rgba(4,7,10,0.9));
+    letter-spacing:0.05em;
+  }
+  .team-name{
+    font-size:clamp(16px,2vw,20px); font-weight:600;
+    letter-spacing:0.04em; color:var(--text); text-align:center;
+  }
+  .team-role{
+    font-size:10px; letter-spacing:0.18em; color:var(--signal);
+    border:1px solid rgba(77,255,161,0.3); padding:3px 10px;
+    text-align:center;
+  }
+  .team-coming-soon{
+    max-width:1180px; margin:60px auto 0; padding:0 clamp(20px,4vw,56px);
+    display:flex; align-items:center; gap:16px;
+  }
+  .team-coming-soon::before, .team-coming-soon::after{
+    content:''; flex:1; height:1px; background:var(--archive-line);
+  }
+  .team-coming-soon span{
+    font-family:'IBM Plex Mono',monospace; font-size:11px;
+    letter-spacing:0.16em; color:var(--ash);
+    white-space:nowrap;
+  }
 
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
@@ -412,10 +596,10 @@
      (same lesson as the preloader fix — never let a real page depend
      on one asset loading correctly). -->
 <div id="theme-reveal">
-  <video id="theme-video" autoplay muted playsinline>
-    <source src="assets/theme-reveal.mp4" type="video/mp4">
+  <video id="theme-video" autoplay muted playsinline preload="auto">
+    <source src="assets/Enspire%20Trailer.mp4" type="video/mp4">
   </video>
-  <button id="reveal-sound" class="mono">🔇 SOUND ON</button>
+  <button id="reveal-sound" class="mono">🔇 TAP FOR SOUND</button>
   <button id="reveal-skip" class="mono">SKIP INTRO →</button>
 </div>
 
@@ -425,7 +609,11 @@
 
 <!-- College header strip -->
 <div id="collegeHeader">
-  <img src="assets/college-header.jpg" alt="St. Vincent Pallotti College of Engineering & Technology, Nagpur">
+  <img class="hdr-logo-left" src="assets/E_3.0%20bg%20removed.png" alt="Enspire 3.0" onerror="this.style.display='none'">
+  <div class="hdr-text">
+    <div class="hdr-college">St. Vincent Pallotti College of Engineering &amp; Technology, Nagpur</div>
+    <div class="hdr-dept">Department of Computer Science &amp; Business Systems</div>
+  </div>
 </div>
 
 <header class="nav" id="siteNav">
@@ -433,31 +621,44 @@
     <!-- >>> LOGO PLACEHOLDER (corner badge) — swap the src below <<< -->
     <img class="corner-logo" src="assets/logo-icon.png" alt="Enspire 3.0 logo"
          onerror="this.style.display='none'">
-    <div class="nav-mark">CSBS // <b>ENSPIRE 3.0</b></div>
+    <div class="nav-mark">CSBS <b>// DEPT</b></div>
   </div>
   <nav class="nav-links">
     <a href="#posters">POSTERS</a>
     <a href="#missions">EVENTS</a>
+    <a href="#team">TEAM</a>
     <a href="https://linktr.ee/qr/da5b41ef-08c6-4265-9b39-eaaf837a8165" target="_blank" rel="noopener">REGISTER</a>
   </nav>
 </header>
 
+<!-- Boom flash overlay -->
+<div id="hero-boom"></div>
+
 <!-- HERO -->
 <section id="hero">
+  <!-- Background video inside hero so it stays with the section -->
+  <video id="hero-bg-video" autoplay muted loop playsinline preload="auto">
+    <source src="assets/c8575c5a81c87b47d9c09b97778684d6_720w.mp4" type="video/mp4">
+  </video>
+
   <div class="hero-frame"></div>
-  <!-- >>> LOGO PLACEHOLDER (full watermark) — swap the src below <<< -->
   <img class="logo-watermark" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
   <div class="hero-tag mono">TEMPORAL LOBBY — CLEARANCE REQUIRED</div>
   <div id="portal-wrap">
-    <div id="portal"></div>
+    <div id="portal">
+      <div id="portal-ring-a"></div>
+      <div id="portal-ring-b"></div>
+    </div>
     <button id="enter-btn">ENTER THE TIMELINE</button>
     <div class="hero-sub mono">variance detected · proceed at your own risk</div>
   </div>
 </section>
 
+<!-- GLOBAL BACKGROUND CANVAS -->
+<canvas id="timeline-canvas"></canvas>
+
 <!-- SACRED TIMELINE VOID -->
 <section id="timeline-section">
-  <canvas id="timeline-canvas"></canvas>
   <img class="logo-watermark" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
   <div class="floaters" id="floaters"></div>
   <div class="timeline-copy">
@@ -484,34 +685,42 @@
     </div>
     <p class="mono">Official promotion posters for Enspire 3.0. Share these across your department groups and socials.</p>
   </div>
+  <!-- Featured 16:9 main poster -->
+  <div class="dossier-row--featured">
+    <div class="dossier dossier--featured">
+      <span class="tag">POSTER</span>
+      <a class="frame" href="assets/main%20poster%20pakka%20final.png" target="_blank" rel="noopener">
+        <img src="assets/main%20poster%20pakka%20final.png" alt="Enspire 3.0 main poster" loading="lazy">
+        <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'">
+      </a>
+      <h4>ENSPIRE 3.0 — MAIN</h4><p>The official event poster. Use for all primary promotion.</p>
+    </div>
+  </div>
+  <!-- 3 portrait event posters -->
   <div class="dossier-row">
     <div class="dossier">
       <span class="tag">POSTER</span>
-      <a class="frame" href="assets/posters/main-poster.jpg" target="_blank" rel="noopener">
-        <img src="assets/posters/main-poster.jpg" alt="Enspire 3.0 main poster" loading="lazy">
-      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
-      <h4>ENSPIRE 3.0 — MAIN</h4><p>The official event poster. Use for all primary promotion.</p>
-    </div>
-    <div class="dossier">
-      <span class="tag">POSTER</span>
-      <a class="frame" href="assets/posters/fifa-poster.jpg" target="_blank" rel="noopener">
-        <img src="assets/posters/fifa-poster.jpg" alt="FIFA event poster" loading="lazy">
-      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
+      <a class="frame" href="assets/Fifa%20Poster.png" target="_blank" rel="noopener">
+        <img src="assets/Fifa%20Poster.png" alt="FIFA event poster" loading="lazy">
+        <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'">
+      </a>
       <h4>FIFA</h4><p>Console tournament promo — for gaming club circulation.</p>
     </div>
     <div class="dossier">
       <span class="tag">POSTER</span>
-      <a class="frame" href="assets/posters/basketball-poster.jpg" target="_blank" rel="noopener">
-        <img src="assets/posters/basketball-poster.jpg" alt="Basketball event poster" loading="lazy">
-      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
-      <h4>BASKETBALL</h4><p>Court tournament promo — for sports committee circulation.</p>
+      <a class="frame" href="assets/En-Mun%20Poster%20(1).png" target="_blank" rel="noopener">
+        <img src="assets/En-Mun%20Poster%20(1).png" alt="En-MUN event poster" loading="lazy">
+        <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'">
+      </a>
+      <h4>EN-MUN</h4><p>Model UN promo — for the debate &amp; literary circle.</p>
     </div>
     <div class="dossier">
       <span class="tag">POSTER</span>
-      <a class="frame" href="assets/posters/enmun-poster.jpg" target="_blank" rel="noopener">
-        <img src="assets/posters/enmun-poster.jpg" alt="En-MUN event poster" loading="lazy">
-      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
-      <h4>EN-MUN</h4><p>Model UN promo — for the debate & literary circle.</p>
+      <a class="frame" href="assets/3v3%20Showdown%20Maximum%204%20Members%20allowed%20Registration%20Fees%20200-.png" target="_blank" rel="noopener">
+        <img src="assets/3v3%20Showdown%20Maximum%204%20Members%20allowed%20Registration%20Fees%20200-.png" alt="Basketball 3v3 Showdown poster" loading="lazy">
+        <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'">
+      </a>
+      <h4>BASKETBALL — 3V3 SHOWDOWN</h4><p>Court tournament promo — for sports committee circulation.</p>
     </div>
   </div>
 </section>
@@ -544,6 +753,46 @@
   </div>
 </section>
 
+<!-- DEVELOPMENT TEAM -->
+<section id="team">
+  <div class="section-head">
+    <div>
+      <span class="stamp mono" style="transform:rotate(-2deg);">OPERATORS</span>
+      <h2><span>Development</span><span>Team.</span></h2>
+    </div>
+    <p class="mono">The architects behind the Enspire 3.0 timeline.</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-photo-ring">
+        <!-- Add photo: <img src="assets/team/om.jpg" alt="Om Tikle"> -->
+        <div class="team-photo-placeholder">OT</div>
+      </div>
+      <div class="team-name">Om Tikle</div>
+      <div class="team-role mono">DEV TEAM</div>
+    </div>
+    <div class="team-card">
+      <div class="team-photo-ring">
+        <!-- Add photo: <img src="assets/team/animesh.jpg" alt="Animesh Tajne"> -->
+        <div class="team-photo-placeholder">AT</div>
+      </div>
+      <div class="team-name">Animesh Tajne</div>
+      <div class="team-role mono">DEV TEAM</div>
+    </div>
+    <div class="team-card">
+      <div class="team-photo-ring">
+        <!-- Add photo: <img src="assets/team/sudeep.jpg" alt="Sudeep Kuralkar"> -->
+        <div class="team-photo-placeholder">SK</div>
+      </div>
+      <div class="team-name">Sudeep Kuralkar</div>
+      <div class="team-role mono">DEV TEAM</div>
+    </div>
+  </div>
+  <div class="team-coming-soon">
+    <span>OTHER TEAMS — INCOMING SIGNAL</span>
+  </div>
+</section>
+
 <!-- CLOSING -->
 <section id="closing">
   <span class="mono">CSBS // DEPARTMENT OF COMPUTER SCIENCE AND BUSINESS SYSTEMS</span>
@@ -556,6 +805,8 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/TextPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
 <script>
 const HAS_GSAP = typeof gsap !== 'undefined';
 if(HAS_GSAP){ gsap.registerPlugin(ScrollTrigger, TextPlugin); }
@@ -581,25 +832,26 @@ function cycleMessage(){
 cycleMessage();
 const msgInterval = setInterval(()=>{
   if(mi < messages.length){ cycleMessage(); } else { clearInterval(msgInterval); }
-}, 550);
+}, 280);
 
-preFill.style.transition = 'width 1.6s cubic-bezier(.4,0,.2,1)';
+preFill.style.transition = 'width 0.7s cubic-bezier(.4,0,.2,1)';
 requestAnimationFrame(()=>{ preFill.style.width = '100%'; });
+
+// Lock scroll while intro / video is running.
+document.body.style.overflow = 'hidden';
 
 function dismissPreloader(){
   if(!preEl || preEl.dataset.dismissed) return;
   preEl.dataset.dismissed = '1';
-  preEl.style.transition = 'opacity .6s ease';
+  preEl.style.transition = 'opacity .4s ease';
   preEl.style.opacity = '0';
   preEl.style.pointerEvents = 'none';
-  setTimeout(()=>{ preEl.style.display = 'none'; }, 650);
-  navEl.classList.add('show');
-  const collegeHeaderEl = document.getElementById('collegeHeader');
-  if(collegeHeaderEl) collegeHeaderEl.classList.add('show');
+  setTimeout(()=>{ preEl.style.display = 'none'; }, 450);
+  // Nav + college header are revealed AFTER the video ends, not here.
 }
-// Primary timing (matches the fill animation) + hard safety net.
-setTimeout(dismissPreloader, 1900);
-setTimeout(dismissPreloader, 4000); // guaranteed unlock no matter what
+// Fast preloader — out in ~0.9s
+setTimeout(dismissPreloader, 900);
+setTimeout(dismissPreloader, 2500); // guaranteed unlock no matter what
 
 /* ---------- THEME REVEAL VIDEO LOGIC ----------
    Same "never get stuck" philosophy as the preloader above: the video
@@ -609,9 +861,18 @@ setTimeout(dismissPreloader, 4000); // guaranteed unlock no matter what
    first. A visitor can never be trapped staring at a black screen. */
 (function(){
   const revealEl = document.getElementById('theme-reveal');
-  const videoEl = document.getElementById('theme-video');
-  const skipBtn = document.getElementById('reveal-skip');
+  const videoEl  = document.getElementById('theme-video');
+  const skipBtn  = document.getElementById('reveal-skip');
   const soundBtn = document.getElementById('reveal-sound');
+
+  /* Show nav + college header once the intro is done. */
+  function revealSite(){
+    // Restore scroll
+    document.body.style.overflow = '';
+    navEl.classList.add('show');
+    const hdr = document.getElementById('collegeHeader');
+    if(hdr) hdr.classList.add('show');
+  }
 
   function dismissReveal(){
     if(!revealEl || revealEl.dataset.dismissed) return;
@@ -619,19 +880,36 @@ setTimeout(dismissPreloader, 4000); // guaranteed unlock no matter what
     revealEl.classList.add('hide');
     setTimeout(()=>{ revealEl.style.display = 'none'; }, 650);
     try{ videoEl.pause(); }catch(e){}
+    revealSite();
   }
 
-  skipBtn.addEventListener('click', dismissReveal);
-  videoEl.addEventListener('ended', dismissReveal);
-  // If the video file is missing / fails to decode, don't trap the visitor.
-  videoEl.addEventListener('error', ()=> setTimeout(dismissReveal, 400));
+  // Play slightly faster + muted (required for autoplay).
+  videoEl.addEventListener('play', ()=>{
+    videoEl.playbackRate = 1.2;
+  }, { once: true });
 
+  // Sound toggle — muted autoplay is required by browsers; user taps to hear.
   soundBtn.addEventListener('click', ()=>{
-    videoEl.muted = !videoEl.muted;
-    soundBtn.textContent = videoEl.muted ? '🔇 SOUND ON' : '🔊 SOUND OFF';
+    if(videoEl.muted){
+      videoEl.muted = false;
+      videoEl.play().catch(()=>{ videoEl.muted = true; soundBtn.textContent = '🔇 TAP FOR SOUND'; return; });
+      soundBtn.textContent = '🔊 SOUND ON';
+    } else {
+      videoEl.muted = true;
+      soundBtn.textContent = '🔇 TAP FOR SOUND';
+    }
   });
 
-  // Hard safety net: if nothing else has fired within 12s, move on anyway.
+  // Dismiss when video finishes naturally.
+  videoEl.addEventListener('ended', dismissReveal);
+
+  // If the file is missing or broken, skip gracefully.
+  videoEl.addEventListener('error', ()=>{ setTimeout(dismissReveal, 500); });
+
+  // Skip button.
+  skipBtn.addEventListener('click', dismissReveal);
+
+  // Hard cutoff: auto-close after 12 seconds and go to main page.
   setTimeout(dismissReveal, 12000);
 })();
 
@@ -639,26 +917,50 @@ setTimeout(dismissPreloader, 4000); // guaranteed unlock no matter what
 if(HAS_GSAP){
   ScrollTrigger.create({
     start: 100, end: 99999,
-    onUpdate: (self)=>{ navEl.classList.toggle('scrolled', self.scroll() > 80); }
+    onUpdate: (self)=>{ 
+      const isScrolled = self.scroll() > 80;
+      navEl.classList.toggle('scrolled', isScrolled); 
+      const hdr = document.getElementById('collegeHeader');
+      if(hdr) hdr.classList.toggle('hidden-by-scroll', isScrolled);
+    }
   });
 } else {
   window.addEventListener('scroll', ()=>{
-    navEl.classList.toggle('scrolled', window.scrollY > 80);
+    const isScrolled = window.scrollY > 80;
+    navEl.classList.toggle('scrolled', isScrolled);
+    const hdr = document.getElementById('collegeHeader');
+    if(hdr) hdr.classList.toggle('hidden-by-scroll', isScrolled);
   });
 }
 
-/* ---------- Portal entrance ---------- */
+/* ---------- Portal entrance + BOOM ---------- */
 document.getElementById('enter-btn').addEventListener('click', ()=>{
   const timelineSection = document.getElementById('timeline-section');
+  const heroBg    = document.getElementById('hero-bg-video');
+  const boomEl    = document.getElementById('hero-boom');
+  const portalWrap = document.getElementById('portal-wrap');
+
+  // 1. Instantly hide the portal/button glow
+  if(portalWrap) portalWrap.classList.add('clicked');
+
+  // 2. Sharpen / bloom the background video
+  if(heroBg) heroBg.classList.add('bloomed');
+
+  // 3. Detonate the boom flash
+  if(boomEl){
+    boomEl.classList.remove('fire');
+    void boomEl.offsetWidth;
+    boomEl.classList.add('fire');
+  }
+
   if(HAS_GSAP){
     const tl = gsap.timeline();
     tl.to('#portal', { scale: 14, duration: 0.9, ease:'power3.in' })
-      .to('#flash', { opacity: 1, duration: 0.18 }, '-=0.25')
-      .to('#flash', { opacity: 0, duration: 0.5 })
+      .to('#flash',  { opacity: 1, duration: 0.18 }, '-=0.25')
+      .to('#flash',  { opacity: 0, duration: 0.5 })
       .add(()=>{ timelineSection.scrollIntoView({ behavior:'auto' }); });
   } else {
-    // No animation library: still take the user where they meant to go.
-    timelineSection.scrollIntoView({ behavior:'smooth' });
+    setTimeout(()=>{ timelineSection.scrollIntoView({ behavior:'smooth' }); }, 700);
   }
 });
 
@@ -684,43 +986,129 @@ floaterLabels.forEach((label, i)=>{
   }
 });
 
-/* ---------- Timeline canvas branches ---------- */
-const canvas = document.getElementById('timeline-canvas');
-const ctx = canvas.getContext('2d');
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+/* ---------- Hero video: fade on scroll (video stays inside hero, fades as section scrolls) ---------- */
+if(HAS_GSAP){
+  gsap.to('#hero-bg-video',{
+    opacity:0, ease:'none',
+    scrollTrigger:{ trigger:'#hero', start:'top top', end:'bottom top', scrub:1 }
+  });
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 
-const branches = [];
-for(let i=0;i<7;i++){
-  branches.push({
-    y: Math.random()*canvas.height,
-    amp: 20 + Math.random()*40,
-    speed: 0.15 + Math.random()*0.3,
-    offset: Math.random()*1000,
-    alpha: 0.06 + Math.random()*0.1
+/* ---------- Three.js Sacred Timeline 3D (non-blocking) ---------- */
+setTimeout(function(){
+  try{
+  const canvas = document.getElementById('timeline-canvas');
+  if(!canvas || typeof THREE === 'undefined') return;
+
+  const W = ()=> window.innerWidth, H = ()=> window.innerHeight;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x04070a, 0.02);
+
+  const camera = new THREE.PerspectiveCamera(65, W()/H(), 0.1, 300);
+  camera.position.set(0, 0, 28);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:false });
+  renderer.setSize(W(), H());
+  renderer.setPixelRatio(1); // Always 1 — biggest perf win
+  renderer.setClearColor(0x000000, 0);
+
+  // ---- Particles (1000 for glowing back) ----
+  const COUNT = 1000;
+  const pos = new Float32Array(COUNT*3);
+  const col = new Float32Array(COUNT*3);
+  const c1 = new THREE.Color(0x4dffa1);
+  const c2 = new THREE.Color(0x0f2a1c);
+  const c3 = new THREE.Color(0x9fb3ab);
+  for(let i=0;i<COUNT;i++){
+    pos[i*3]   = (Math.random()-0.5)*180;
+    pos[i*3+1] = (Math.random()-0.5)*100;
+    pos[i*3+2] = 40 - (Math.random()*190); // Huge depth spreading backward
+    const r = Math.random();
+    const cc = r<0.5 ? c1.clone().lerp(c2, r*2) : c3.clone().lerp(c2, Math.random()*0.4);
+    col[i*3]=cc.r; col[i*3+1]=cc.g; col[i*3+2]=cc.b;
+  }
+  const pgeo = new THREE.BufferGeometry();
+  pgeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  pgeo.setAttribute('color',    new THREE.BufferAttribute(col,3));
+  const pmat = new THREE.PointsMaterial({ size:0.45, vertexColors:true, transparent:true, opacity:0.95, sizeAttenuation:true });
+  const particles = new THREE.Points(pgeo, pmat);
+  scene.add(particles);
+
+  // ---- 7 timeline branch lines ----
+  for(let b=0;b<7;b++){
+    const pts=[];
+    const ox=(Math.random()-0.5)*70, oy=(Math.random()-0.5)*22, oz=(Math.random()-0.5)*45;
+    for(let p=0;p<30;p++)
+      pts.push(new THREE.Vector3(ox+p*2.4+Math.sin(p*0.5+b)*6, oy+Math.sin(p*0.3+b*0.8)*9, oz+Math.cos(p*0.4+b*0.6)*7));
+    scene.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color:0x4dffa1, transparent:true, opacity:0.07+Math.random()*0.09 })
+    ));
+  }
+
+  // ---- Central orb ----
+  const orb = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(2, 0), // subdivision 0 = 20 faces, very light
+    new THREE.MeshBasicMaterial({ color:0x4dffa1, wireframe:true, transparent:true, opacity:0.3 })
+  );
+  scene.add(orb);
+
+  // ---- Pause when off-screen ----
+  let visible = false;
+  const observer = new IntersectionObserver(([e])=>{ visible = e.isIntersecting; }, { threshold:0 });
+  observer.observe(canvas);
+
+  // ---- Mouse Interaction ----
+  let targetX = 0, targetY = 0;
+  window.addEventListener('mousemove', e => {
+    targetX = (e.clientX / W()) * 2 - 1;
+    targetY = -(e.clientY / H()) * 2 + 1;
   });
-}
-let t = 0;
-function drawBranches(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  branches.forEach(b=>{
-    ctx.beginPath();
-    ctx.strokeStyle = `rgba(77,255,161,${b.alpha})`;
-    ctx.lineWidth = 1;
-    for(let x=0; x<=canvas.width; x+=10){
-      const y = b.y + Math.sin((x*0.005) + t*b.speed + b.offset) * b.amp;
-      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
+
+  // ---- Animation (only when visible) ----
+  let clk = 0;
+  function tick(){
+    requestAnimationFrame(tick);
+    if(!visible) return; // Skip GPU work when off-screen
+    clk += 0.003;
+    
+    // Smooth camera parallax
+    const camX = Math.sin(clk*0.35)*3 + targetX * 6;
+    const camY = Math.cos(clk*0.22)*2 + targetY * 6;
+    camera.position.x += (camX - camera.position.x) * 0.06;
+    camera.position.y += (camY - camera.position.y) * 0.06;
+    
+    camera.lookAt(0,0,0);
+    
+    particles.rotation.y = clk*0.035;
+    particles.rotation.x = clk*0.012;
+    const p = 1 + Math.sin(clk*2)*0.1;
+    orb.scale.setScalar(p);
+    orb.rotation.y = clk*0.55;
+    orb.rotation.x = clk*0.3;
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  window.addEventListener('resize',()=>{
+    camera.aspect = W()/H();
+    camera.updateProjectionMatrix();
+    renderer.setSize(W(),H());
   });
-  t += 0.02;
-  requestAnimationFrame(drawBranches);
-}
-drawBranches();
+
+  if(HAS_GSAP){
+    // Bind the scroll trigger to the entire body for a massive full-page zoom
+    ScrollTrigger.create({
+      trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: 0.5,
+      onUpdate: self=>{
+        // Move camera deeply through the particles from z=28 to z=-100
+        camera.position.z = 28 - self.progress * 128;
+      }
+    });
+  }
+  }catch(e){ console.warn('Three.js error:', e); }
+}, 600);
 
 /* ---------- Hero type-line + title reveal ---------- */
 let typed = false;
@@ -779,6 +1167,14 @@ if(HAS_GSAP){
   gsap.fromTo('#closing h2', { opacity:0, y:30 }, {
     opacity:1, y:0, duration:0.9, ease:'power2.out',
     scrollTrigger:{ trigger:'#closing', start:'top 75%' }
+  });
+
+  /* ---------- Team cards reveal ---------- */
+  gsap.utils.toArray('.team-card').forEach((card, i)=>{
+    gsap.fromTo(card, { opacity:0, y:50, scale:0.95 }, {
+      opacity:1, y:0, scale:1, duration:0.75, ease:'power3.out', delay:i*0.15,
+      scrollTrigger:{ trigger:'.team-grid', start:'top 82%' }
+    });
   });
 } else {
   // No GSAP: reveal the hero copy as soon as the timeline section is scrolled to.
