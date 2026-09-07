@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ENSPIRE 3.0 — CSBS Department</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04070a;
+    --panel:#080f0c;
+    --archive:#0f2a1c;
+    --archive-line: rgba(76,255,160,0.18);
+    --signal:#4dffa1;
+    --signal-dim: rgba(77,255,161,0.35);
+    --prune:#ff7a29;
+    --parchment:#ece4cd;
+    --parchment-ink:#241d10;
+    --ash:#9fb3ab;
+    --text:#e8f5ee;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ background:var(--void); scroll-behavior:smooth; }
+  body{
+    background:var(--void);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    overflow-x:hidden;
+    cursor: default;
+  }
+  ::selection{ background:var(--signal); color:var(--void); }
+
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  a{ color:inherit; text-decoration:none; }
+
+  /* ---------- scanline / grain overlay ---------- */
+  .grain{
+    position:fixed; inset:0; z-index:9998; pointer-events:none;
+    background-image: repeating-linear-gradient(
+      to bottom, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px,
+      transparent 1px, transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity:0.5;
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:9997; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.65) 100%);
+  }
+
+  /* ---------- preloader ---------- */
+  #preloader{
+    position:fixed; inset:0; z-index:10000;
+    background:var(--void);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px;
+  }
+  #preloader .line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; letter-spacing:0.12em;
+    color:var(--signal);
+    min-height:18px;
+  }
+  #preloader .bar-track{
+    width:220px; height:2px; background:rgba(77,255,161,0.15); position:relative; overflow:hidden;
+  }
+  #preloader .bar-fill{
+    position:absolute; left:0; top:0; height:100%; width:0%; background:var(--signal);
+    box-shadow:0 0 8px var(--signal);
+  }
+  .cursor-blink{
+    display:inline-block; width:8px; height:14px; background:var(--signal);
+    animation: blink 0.9s steps(1) infinite; vertical-align:-2px; margin-left:2px;
+  }
+  /* ---------- COLLEGE HEADER STRIP (styles below, in the nav block) ---------- */
+
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- LOGO: corner badge + full-page watermark ----------
+     Two placements, as requested:
+     1) .corner-logo  — small badge, top-left of the nav, always visible
+     2) .logo-watermark — large, faint, fixed centered mark behind the
+        hero + timeline sections, for that "this is stamped with our
+        brand" feel without competing with the headline text.
+     >>> REPLACE THE src="" BELOW WITH YOUR ACTUAL LOGO FILE PATH <<<
+     Recommended: transparent PNG or SVG, square-ish aspect ratio.
+     Note: the current logo.png has a solid black background rather
+     than transparency, so mix-blend-mode:screen is used below — it
+     makes pure black disappear against our dark theme and keeps only
+     the bright flame/text. If you later get a proper transparent-PNG
+     version of the logo, you can safely remove the blend-mode lines. */
+  .corner-logo{
+    height:34px; width:auto; display:block;
+    mix-blend-mode:screen;
+  }
+  .logo-watermark{
+    position:absolute; top:50%; left:50%;
+    width:min(50vw, 520px); height:auto;
+    transform:translate(-50%,-50%);
+    opacity:0.14; pointer-events:none; z-index:1;
+    mix-blend-mode:screen;
+  }
+  /* Small corner watermark repeated on each poster/dossier card. */
+  .card-logo-mark{
+    position:absolute; bottom:8px; right:8px; width:26px; height:26px;
+    opacity:0.85; z-index:3; pointer-events:none;
+    mix-blend-mode:screen;
+  }
+
+  /* ---------- THEME REVEAL VIDEO ----------
+     Fullscreen intro that plays once, before the hero. See the guide
+     comment near the <video> tag in the body, and the JS block near
+     "THEME REVEAL VIDEO LOGIC" for how the timing works. */
+  #theme-reveal{
+    position:fixed; inset:0; z-index:9900; background:#000;
+    display:flex; align-items:center; justify-content:center;
+    opacity:1; transition:opacity .6s ease;
+  }
+  #theme-reveal.hide{ opacity:0; pointer-events:none; }
+  #theme-video{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  #reveal-skip{
+    position:absolute; bottom:28px; right:28px;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.1em;
+    color:var(--text); background:rgba(4,7,10,0.55); border:1px solid var(--archive-line);
+    padding:10px 18px; cursor:pointer; backdrop-filter:blur(4px);
+    transition: border-color .2s ease, color .2s ease;
+  }
+  #reveal-skip:hover{ border-color:var(--signal); color:var(--signal); }
+  #reveal-sound{
+    position:absolute; bottom:28px; left:28px;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.1em;
+    color:var(--ash); background:rgba(4,7,10,0.55); border:1px solid var(--archive-line);
+    padding:10px 16px; cursor:pointer; backdrop-filter:blur(4px);
+  }
+
+  /* ---------- nav ---------- */
+  header.nav{
+    position:fixed; top:56px; left:0; right:0; z-index:500;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px clamp(20px,4vw,56px);
+    opacity:0; pointer-events:none;
+    border-bottom:1px solid transparent;
+    transition: border-color .4s ease, background .4s ease;
+  }
+  /* ---------- College header strip (sits above the nav) ---------- */
+  #collegeHeader{
+    position:fixed; top:0; left:0; right:0; z-index:600;
+    background:#0b0b0d; border-bottom:1px solid var(--archive-line);
+    display:flex; align-items:center; justify-content:center;
+    padding:8px 16px; height:56px;
+    opacity:0; pointer-events:none; transition: opacity .4s ease;
+  }
+  #collegeHeader.show{ opacity:1; }
+  #collegeHeader img{ max-height:38px; width:auto; display:block; }
+  @media (max-width:480px){ #collegeHeader img{ max-height:28px; } #collegeHeader{ height:44px; } header.nav{ top:44px; } }
+  header.nav.show{ opacity:1; pointer-events:auto; }
+  header.nav.scrolled{ border-color:var(--archive-line); background:rgba(4,7,10,0.75); backdrop-filter: blur(6px); }
+  .nav-mark{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.08em; color:var(--signal); }
+  .nav-mark b{ color:var(--text); font-weight:500; }
+  .nav-links{ display:flex; gap:28px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.06em; color:var(--ash); }
+  .nav-links a{ position:relative; padding-bottom:3px; }
+  .nav-links a:hover{ color:var(--signal); }
+  @media (max-width:640px){ .nav-links{ display:none; } }
+
+  /* ================= HERO / PORTAL ================= */
+  #hero{
+    position:relative; height:100svh; width:100%;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(1200px 700px at 50% 40%, rgba(15,42,28,0.55), transparent 70%),
+      var(--void);
+    overflow:hidden;
+  }
+  .hero-frame{
+    position:absolute; inset:18px;
+    border:1px solid var(--archive-line);
+    pointer-events:none;
+  }
+  .hero-frame::before, .hero-frame::after{
+    content:''; position:absolute; width:14px; height:14px; border:1px solid var(--signal);
+  }
+  .hero-frame::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .hero-frame::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+
+  .hero-tag{
+    position:absolute; top:38px; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.18em;
+    color:var(--ash);
+  }
+
+  #portal-wrap{
+    position:relative; display:flex; flex-direction:column; align-items:center; gap:30px;
+  }
+  #portal{
+    width:150px; height:150px; border-radius:50%;
+    background: radial-gradient(circle, rgba(77,255,161,0.9) 0%, rgba(77,255,161,0.25) 35%, transparent 70%);
+    box-shadow: 0 0 60px 10px rgba(77,255,161,0.25);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  #portal::before{
+    content:''; position:absolute; inset:0; border-radius:50%;
+    border:1px solid rgba(77,255,161,0.5);
+    animation: ring-pulse 3s ease-in-out infinite;
+  }
+  @keyframes ring-pulse{
+    0%,100%{ transform:scale(1); opacity:0.7; }
+    50%{ transform:scale(1.18); opacity:0.15; }
+  }
+  #enter-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px; letter-spacing:0.2em;
+    color:var(--void); background:var(--signal);
+    border:none; padding:13px 30px;
+    cursor:pointer;
+    position:relative; z-index:2;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  #enter-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 24px rgba(77,255,161,0.35); }
+  #enter-btn:active{ transform:translateY(0); }
+
+  .hero-sub{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash);
+    letter-spacing:0.1em;
+  }
+
+  #flash{
+    position:fixed; inset:0; background:var(--signal); z-index:9500;
+    opacity:0; pointer-events:none;
+  }
+
+  /* ================= TIMELINE VOID (pinned) ================= */
+  #timeline-section{
+    position:relative; height:100svh; width:100%;
+    background: var(--void);
+    overflow:hidden;
+  }
+  #timeline-canvas{ position:absolute; inset:0; width:100%; height:100%; }
+
+  .floaters{ position:absolute; inset:0; pointer-events:none; }
+  .floater{
+    position:absolute; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    color: var(--signal-dim); border:1px solid var(--archive-line);
+    padding:6px 10px; border-radius:2px; background:rgba(15,42,28,0.25);
+    letter-spacing:0.06em; white-space:nowrap;
+  }
+
+  .timeline-copy{
+    position:relative; z-index:5; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:0 20px;
+  }
+  #type-line{
+    font-family:'IBM Plex Mono',monospace; color:var(--signal); font-size:clamp(12px,1.6vw,15px);
+    letter-spacing:0.12em; margin-bottom:22px; min-height:20px;
+  }
+  #title-line{
+    font-size:clamp(34px,7vw,88px); line-height:1.02; font-weight:700;
+    color:var(--text);
+    max-width:16ch;
+  }
+  #title-line em{ font-style:normal; color:var(--signal); }
+  .scroll-hint{
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); letter-spacing:0.15em;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .scroll-hint .stem{ width:1px; height:26px; background:linear-gradient(var(--signal), transparent); animation: stem-flow 1.6s ease-in-out infinite; }
+  @keyframes stem-flow{ 0%,100%{ opacity:0.3; } 50%{ opacity:1; } }
+
+  /* ================= PROMOTION POSTERS ================= */
+  #posters{
+    position:relative; padding: 140px 0 160px; background:var(--void);
+    border-top:1px solid var(--archive-line);
+  }
+  .section-head{
+    max-width:1180px; margin:0 auto 70px; padding:0 clamp(20px,4vw,56px);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  }
+  .section-head .stamp{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--prune);
+    border:1px solid var(--prune); padding:4px 10px; letter-spacing:0.12em;
+    transform:rotate(-3deg); display:inline-block; margin-bottom:14px;
+  }
+  .section-head h2{
+    font-size:clamp(30px,4.2vw,52px); font-weight:600; line-height:1.05; max-width:14ch;
+    overflow:hidden;
+  }
+  .section-head h2 span{ display:block; }
+  .section-head p.mono{ color:var(--ash); font-size:13px; max-width:32ch; line-height:1.6; }
+
+  .dossier-row{
+    max-width:1180px; margin:0 auto; padding:0 clamp(20px,4vw,56px);
+    display:grid; grid-template-columns:repeat(4,1fr); gap:22px;
+  }
+  @media (max-width:980px){ .dossier-row{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .dossier-row{ grid-template-columns:1fr; } }
+
+  .dossier{
+    background:var(--parchment); color:var(--parchment-ink);
+    padding:16px 16px 20px; position:relative;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+  }
+  .dossier .frame{
+    border:1px dashed rgba(36,29,16,0.35); aspect-ratio: 3/4; margin-bottom:14px;
+    display:flex; align-items:center; justify-content:center;
+    background: repeating-linear-gradient(135deg, rgba(36,29,16,0.05) 0 8px, transparent 8px 16px);
+    position:relative; overflow:hidden;
+  }
+  .dossier .frame span{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; opacity:0.55; text-align:center; }
+  .dossier .frame img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .dossier .frame .card-logo-mark{ position:absolute; bottom:6px; right:6px; }
+  .dossier h4{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.06em; margin-bottom:6px; }
+  .dossier p{ font-size:12px; line-height:1.5; opacity:0.75; }
+  .dossier .tag{
+    position:absolute; top:-10px; right:14px; background:var(--prune); color:var(--void);
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; letter-spacing:0.08em;
+    transform:rotate(4deg);
+  }
+
+  /* ================= MISSION DATABASE ================= */
+  #missions{
+    position:relative; padding:140px 0 160px; background:var(--panel);
+    border-top:1px solid var(--archive-line);
+  }
+  .mission-list{
+    max-width:1180px; margin:0 auto; padding:0 clamp(20px,4vw,56px);
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .mission-card{
+    border:1px solid var(--archive-line);
+    background: linear-gradient(180deg, rgba(15,42,28,0.35), rgba(8,15,12,0.35));
+    padding:26px clamp(18px,3vw,34px);
+    display:grid; grid-template-columns: 90px 1fr auto; align-items:center; gap:22px;
+    position:relative; overflow:hidden;
+    transition: border-color .3s ease, background .3s ease;
+  }
+  .mission-card::before{
+    content:''; position:absolute; inset:0; opacity:0; pointer-events:none;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0 1px, transparent 1px 3px);
+    transition: opacity .25s ease;
+  }
+  .mission-card:hover{ border-color:var(--signal); background: linear-gradient(180deg, rgba(77,255,161,0.09), rgba(8,15,12,0.35)); }
+  .mission-card:hover::before{ opacity:1; }
+  .mission-id{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--signal); letter-spacing:0.08em; }
+  .mission-body h3{ font-size:clamp(19px,2.4vw,25px); font-weight:600; margin-bottom:6px; }
+  .mission-body p{ color:var(--ash); font-size:13px; max-width:52ch; line-height:1.55; }
+  .mission-cta{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.08em;
+    color:var(--void); background:var(--signal); padding:10px 18px;
+    white-space:nowrap; opacity:0; transform:translateX(10px);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .mission-card:hover .mission-cta{ opacity:1; transform:translateX(0); }
+  @media (max-width:720px){
+    .mission-card{ grid-template-columns:1fr; }
+    .mission-cta{ opacity:1; transform:none; justify-self:flex-start; }
+  }
+
+  /* ================= FOOTER / CTA ================= */
+  #closing{
+    position:relative; padding:170px 20px 90px; text-align:center;
+    background: radial-gradient(900px 500px at 50% 0%, rgba(77,255,161,0.08), transparent 70%), var(--void);
+    border-top:1px solid var(--archive-line);
+  }
+  #closing .mono{ color:var(--signal); font-size:12px; letter-spacing:0.15em; margin-bottom:20px; display:block; }
+  #closing h2{ font-size:clamp(32px,6vw,68px); font-weight:700; max-width:16ch; margin:0 auto 34px; line-height:1.05; }
+  #closing .cta{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.14em;
+    color:var(--void); background:var(--signal); padding:15px 32px;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  #closing .cta:hover{ transform:translateY(-2px); box-shadow:0 8px 26px rgba(77,255,161,0.3); }
+  footer{
+    padding:34px 20px; text-align:center; font-family:'IBM Plex Mono',monospace;
+    font-size:11px; color:var(--ash); letter-spacing:0.08em; border-top:1px solid var(--archive-line);
+    background:var(--void);
+  }
+
+  @keyframes floatFallback{ from{ transform:translate(0,0);} to{ transform:translate(10px,-16px);} }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  :focus-visible{ outline:2px solid var(--signal); outline-offset:3px; }
+</style>
+</head>
+<body>
+
+<div id="preloader">
+  <div class="line mono" id="pre-line">CONNECTING TO TVA MAINFRAME<span class="cursor-blink"></span></div>
+  <div class="bar-track"><div class="bar-fill" id="pre-fill"></div></div>
+</div>
+
+<!-- ============ THEME REVEAL VIDEO ============
+     Plays once, right after the terminal preloader, before the hero.
+     >>> HOW TO ADD YOUR VIDEO <<<
+     1. Export your reveal video as .mp4 (H.264) — keep it under ~15MB
+        so it starts fast. 1920x1080 or 1080x1920 (if vertical) both work.
+     2. Put the file next to this index.html, e.g. in an "assets" folder.
+     3. Replace the src="assets/theme-reveal.mp4" below with your path.
+     4. Browsers require video to be MUTED to autoplay — that's why it
+        starts muted with a "Sound On" button the visitor can tap.
+     Safety net: if the file is missing or fails to load, the intro is
+     skipped automatically after ~1s so the page never gets stuck here
+     (same lesson as the preloader fix — never let a real page depend
+     on one asset loading correctly). -->
+<div id="theme-reveal">
+  <video id="theme-video" autoplay muted playsinline>
+    <source src="assets/theme-reveal.mp4" type="video/mp4">
+  </video>
+  <button id="reveal-sound" class="mono">🔇 SOUND ON</button>
+  <button id="reveal-skip" class="mono">SKIP INTRO →</button>
+</div>
+
+<div class="grain"></div>
+<div class="vignette"></div>
+<div id="flash"></div>
+
+<!-- College header strip -->
+<div id="collegeHeader">
+  <img src="assets/college-header.jpg" alt="St. Vincent Pallotti College of Engineering & Technology, Nagpur">
+</div>
+
+<header class="nav" id="siteNav">
+  <div style="display:flex; align-items:center; gap:12px;">
+    <!-- >>> LOGO PLACEHOLDER (corner badge) — swap the src below <<< -->
+    <img class="corner-logo" src="assets/logo-icon.png" alt="Enspire 3.0 logo"
+         onerror="this.style.display='none'">
+    <div class="nav-mark">CSBS // <b>ENSPIRE 3.0</b></div>
+  </div>
+  <nav class="nav-links">
+    <a href="#posters">POSTERS</a>
+    <a href="#missions">EVENTS</a>
+    <a href="https://linktr.ee/qr/da5b41ef-08c6-4265-9b39-eaaf837a8165" target="_blank" rel="noopener">REGISTER</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-frame"></div>
+  <!-- >>> LOGO PLACEHOLDER (full watermark) — swap the src below <<< -->
+  <img class="logo-watermark" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+  <div class="hero-tag mono">TEMPORAL LOBBY — CLEARANCE REQUIRED</div>
+  <div id="portal-wrap">
+    <div id="portal"></div>
+    <button id="enter-btn">ENTER THE TIMELINE</button>
+    <div class="hero-sub mono">variance detected · proceed at your own risk</div>
+  </div>
+</section>
+
+<!-- SACRED TIMELINE VOID -->
+<section id="timeline-section">
+  <canvas id="timeline-canvas"></canvas>
+  <img class="logo-watermark" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+  <div class="floaters" id="floaters"></div>
+  <div class="timeline-copy">
+    <div id="type-line" class="mono"></div>
+    <h1 id="title-line">ENSPIRE <em>3.0</em></h1>
+    <div class="hero-sub mono" style="margin-top:18px;">the timeline lies within</div>
+  </div>
+  <div class="scroll-hint"><span>SCROLL TO PROCEED</span><span class="stem"></span></div>
+</section>
+
+<!-- PROMOTION POSTERS
+     >>> ADD YOUR POSTER IMAGES <<<
+     Replace each .frame div's placeholder content with:
+       <img src="assets/posters/fifa-poster.jpg" alt="FIFA event poster">
+     Recommended poster size: 1080x1350 (Instagram portrait) or 1080x1080
+     (square) — the .frame box will crop-to-fill automatically once you
+     add "object-fit:cover;" to the img (already included in the CSS
+     rule .dossier .frame img below, just uncomment it if needed). -->
+<section id="posters">
+  <div class="section-head">
+    <div>
+      <span class="stamp mono">TRANSMISSION</span>
+      <h2><span>Spread the</span><span>word first.</span></h2>
+    </div>
+    <p class="mono">Official promotion posters for Enspire 3.0. Share these across your department groups and socials.</p>
+  </div>
+  <div class="dossier-row">
+    <div class="dossier">
+      <span class="tag">POSTER</span>
+      <a class="frame" href="assets/posters/main-poster.jpg" target="_blank" rel="noopener">
+        <img src="assets/posters/main-poster.jpg" alt="Enspire 3.0 main poster" loading="lazy">
+      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
+      <h4>ENSPIRE 3.0 — MAIN</h4><p>The official event poster. Use for all primary promotion.</p>
+    </div>
+    <div class="dossier">
+      <span class="tag">POSTER</span>
+      <a class="frame" href="assets/posters/fifa-poster.jpg" target="_blank" rel="noopener">
+        <img src="assets/posters/fifa-poster.jpg" alt="FIFA event poster" loading="lazy">
+      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
+      <h4>FIFA</h4><p>Console tournament promo — for gaming club circulation.</p>
+    </div>
+    <div class="dossier">
+      <span class="tag">POSTER</span>
+      <a class="frame" href="assets/posters/basketball-poster.jpg" target="_blank" rel="noopener">
+        <img src="assets/posters/basketball-poster.jpg" alt="Basketball event poster" loading="lazy">
+      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
+      <h4>BASKETBALL</h4><p>Court tournament promo — for sports committee circulation.</p>
+    </div>
+    <div class="dossier">
+      <span class="tag">POSTER</span>
+      <a class="frame" href="assets/posters/enmun-poster.jpg" target="_blank" rel="noopener">
+        <img src="assets/posters/enmun-poster.jpg" alt="En-MUN event poster" loading="lazy">
+      <img class="card-logo-mark" src="assets/logo-icon.png" alt="" loading="lazy" onerror="this.style.display='none'"></a>
+      <h4>EN-MUN</h4><p>Model UN promo — for the debate & literary circle.</p>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section id="missions">
+  <div class="section-head">
+    <div>
+      <span class="stamp mono" style="transform:rotate(2deg);">ACTIVE</span>
+      <h2><span>Three branches</span><span>are open.</span></h2>
+    </div>
+    <p class="mono">Choose one to pursue — registration confirms your timeline.</p>
+  </div>
+  <div class="mission-list">
+    <div class="mission-card">
+      <div class="mission-id mono">CASE NO. 01</div>
+      <div class="mission-body"><h3>FIFA</h3><p>Console tournament, knockout format. Bring your squad, one console per match.</p></div>
+      <a class="mission-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSdqHVt3FpXji2FukPi-uLxYq6CaJUmHdkLPoXDc6qcRoeDDAA/viewform" target="_blank" rel="noopener">REGISTER →</a>
+    </div>
+    <div class="mission-card">
+      <div class="mission-id mono">CASE NO. 02</div>
+      <div class="mission-body"><h3>Basketball</h3><p>5-on-5 knockout tournament. Open to all department teams.</p></div>
+      <a class="mission-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSeOe_n4QWNhzVIHuc-GfWRyJ6dy6tGB5XY0UYYeT0JvFPEBXw/viewform" target="_blank" rel="noopener">REGISTER →</a>
+    </div>
+    <div class="mission-card">
+      <div class="mission-id mono">CASE NO. 03</div>
+      <div class="mission-body"><h3>En-MUN</h3><p>Model United Nations committee sessions. Represent, debate, resolve.</p></div>
+      <a class="mission-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSf4e7QgbOFjuZTf3V02azNVGtW83OZmXnAcHcMOCfWIYmOMtg/viewform" target="_blank" rel="noopener">REGISTER →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section id="closing">
+  <span class="mono">CSBS // DEPARTMENT OF COMPUTER SCIENCE AND BUSINESS SYSTEMS</span>
+  <h2>Your branch is still open. Report before it prunes itself.</h2>
+  <a class="cta" href="https://linktr.ee/qr/da5b41ef-08c6-4265-9b39-eaaf837a8165" target="_blank" rel="noopener">REGISTER NOW</a>
+</section>
+
+<footer>© CSBS DEPT. — ENSPIRE 3.0 — FOR TIMELINE USE ONLY</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/TextPlugin.min.js"></script>
+<script>
+const HAS_GSAP = typeof gsap !== 'undefined';
+if(HAS_GSAP){ gsap.registerPlugin(ScrollTrigger, TextPlugin); }
+// Note: intentionally NOT using a smooth-scroll hijack library (e.g. Lenis) —
+// those intercept native wheel/touch scrolling and re-drive it manually,
+// and if that render loop ever stalls, the whole page freezes on one section.
+// Plain native scrolling + ScrollTrigger is slightly less "buttery" but never breaks.
+
+/* ---------- Preloader ----------
+   IMPORTANT: this must never depend on an external CDN script.
+   It runs on plain JS/CSS so the page always unlocks even if
+   GSAP/Lenis fail to load (blocked CDN, offline, ad-blocker, etc). */
+const preEl = document.getElementById('preloader');
+const preLine = document.getElementById('pre-line');
+const preFill = document.getElementById('pre-fill');
+const navEl = document.getElementById('siteNav');
+const messages = ['CONNECTING TO TVA MAINFRAME', 'SCANNING SACRED TIMELINE', 'TIMELINE SYNCHRONIZED'];
+let mi = 0;
+function cycleMessage(){
+  preLine.innerHTML = messages[mi] + '<span class="cursor-blink"></span>';
+  mi++;
+}
+cycleMessage();
+const msgInterval = setInterval(()=>{
+  if(mi < messages.length){ cycleMessage(); } else { clearInterval(msgInterval); }
+}, 550);
+
+preFill.style.transition = 'width 1.6s cubic-bezier(.4,0,.2,1)';
+requestAnimationFrame(()=>{ preFill.style.width = '100%'; });
+
+function dismissPreloader(){
+  if(!preEl || preEl.dataset.dismissed) return;
+  preEl.dataset.dismissed = '1';
+  preEl.style.transition = 'opacity .6s ease';
+  preEl.style.opacity = '0';
+  preEl.style.pointerEvents = 'none';
+  setTimeout(()=>{ preEl.style.display = 'none'; }, 650);
+  navEl.classList.add('show');
+  const collegeHeaderEl = document.getElementById('collegeHeader');
+  if(collegeHeaderEl) collegeHeaderEl.classList.add('show');
+}
+// Primary timing (matches the fill animation) + hard safety net.
+setTimeout(dismissPreloader, 1900);
+setTimeout(dismissPreloader, 4000); // guaranteed unlock no matter what
+
+/* ---------- THEME REVEAL VIDEO LOGIC ----------
+   Same "never get stuck" philosophy as the preloader above: the video
+   is a nice-to-have, never a gate. It dismisses itself the instant the
+   video ends, the visitor clicks Skip, OR (if the file is missing/
+   broken/slow) automatically after a short timeout — whichever comes
+   first. A visitor can never be trapped staring at a black screen. */
+(function(){
+  const revealEl = document.getElementById('theme-reveal');
+  const videoEl = document.getElementById('theme-video');
+  const skipBtn = document.getElementById('reveal-skip');
+  const soundBtn = document.getElementById('reveal-sound');
+
+  function dismissReveal(){
+    if(!revealEl || revealEl.dataset.dismissed) return;
+    revealEl.dataset.dismissed = '1';
+    revealEl.classList.add('hide');
+    setTimeout(()=>{ revealEl.style.display = 'none'; }, 650);
+    try{ videoEl.pause(); }catch(e){}
+  }
+
+  skipBtn.addEventListener('click', dismissReveal);
+  videoEl.addEventListener('ended', dismissReveal);
+  // If the video file is missing / fails to decode, don't trap the visitor.
+  videoEl.addEventListener('error', ()=> setTimeout(dismissReveal, 400));
+
+  soundBtn.addEventListener('click', ()=>{
+    videoEl.muted = !videoEl.muted;
+    soundBtn.textContent = videoEl.muted ? '🔇 SOUND ON' : '🔊 SOUND OFF';
+  });
+
+  // Hard safety net: if nothing else has fired within 12s, move on anyway.
+  setTimeout(dismissReveal, 12000);
+})();
+
+/* ---------- Nav background on scroll (works with or without GSAP) ---------- */
+if(HAS_GSAP){
+  ScrollTrigger.create({
+    start: 100, end: 99999,
+    onUpdate: (self)=>{ navEl.classList.toggle('scrolled', self.scroll() > 80); }
+  });
+} else {
+  window.addEventListener('scroll', ()=>{
+    navEl.classList.toggle('scrolled', window.scrollY > 80);
+  });
+}
+
+/* ---------- Portal entrance ---------- */
+document.getElementById('enter-btn').addEventListener('click', ()=>{
+  const timelineSection = document.getElementById('timeline-section');
+  if(HAS_GSAP){
+    const tl = gsap.timeline();
+    tl.to('#portal', { scale: 14, duration: 0.9, ease:'power3.in' })
+      .to('#flash', { opacity: 1, duration: 0.18 }, '-=0.25')
+      .to('#flash', { opacity: 0, duration: 0.5 })
+      .add(()=>{ timelineSection.scrollIntoView({ behavior:'auto' }); });
+  } else {
+    // No animation library: still take the user where they meant to go.
+    timelineSection.scrollIntoView({ behavior:'smooth' });
+  }
+});
+
+/* ---------- Floating case items ---------- */
+const floaterLabels = ['TEMPAD // ACTIVE', 'PRUNING BATON', 'CASE 0219', 'BRANCH STABLE', 'HOURGLASS SYNC', 'VARIANT FLAGGED'];
+const floaterWrap = document.getElementById('floaters');
+floaterLabels.forEach((label, i)=>{
+  const el = document.createElement('div');
+  el.className = 'floater';
+  el.textContent = label;
+  el.style.left = (10 + Math.random()*75) + '%';
+  el.style.top = (12 + Math.random()*70) + '%';
+  floaterWrap.appendChild(el);
+  if(HAS_GSAP){
+    gsap.to(el, {
+      y: 'random(-24,24)', x: 'random(-16,16)',
+      duration: 'random(3,5)', repeat:-1, yoyo:true, ease:'sine.inOut',
+      delay: i*0.3
+    });
+  } else {
+    // Plain-CSS float fallback so it still drifts without GSAP.
+    el.style.animation = `floatFallback ${3+Math.random()*2}s ease-in-out ${i*0.3}s infinite alternate`;
+  }
+});
+
+/* ---------- Timeline canvas branches ---------- */
+const canvas = document.getElementById('timeline-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const branches = [];
+for(let i=0;i<7;i++){
+  branches.push({
+    y: Math.random()*canvas.height,
+    amp: 20 + Math.random()*40,
+    speed: 0.15 + Math.random()*0.3,
+    offset: Math.random()*1000,
+    alpha: 0.06 + Math.random()*0.1
+  });
+}
+let t = 0;
+function drawBranches(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  branches.forEach(b=>{
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(77,255,161,${b.alpha})`;
+    ctx.lineWidth = 1;
+    for(let x=0; x<=canvas.width; x+=10){
+      const y = b.y + Math.sin((x*0.005) + t*b.speed + b.offset) * b.amp;
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  });
+  t += 0.02;
+  requestAnimationFrame(drawBranches);
+}
+drawBranches();
+
+/* ---------- Hero type-line + title reveal ---------- */
+let typed = false;
+function playType(){
+  if(typed) return;
+  typed = true;
+  if(HAS_GSAP){
+    gsap.timeline()
+      .to('#type-line', { duration: 1.2, text: 'CSBS DEPARTMENT PRESENTS...', ease:'none' })
+      .to('#title-line', { duration: 0.1 }, '+=0.1'); // title is visible by default in CSS
+  } else {
+    document.getElementById('type-line').textContent = 'CSBS DEPARTMENT PRESENTS...';
+  }
+}
+
+if(HAS_GSAP){
+  /* ---------- Pin timeline section ---------- */
+  ScrollTrigger.create({
+    trigger: '#timeline-section', start: 'top top', end: '+=60%', pin: true,
+    onEnter: playType, onEnterBack: playType
+  });
+  ScrollTrigger.create({ trigger:'#timeline-section', start:'top center', onEnter: playType });
+
+  /* ---------- Section head reveal ---------- */
+  document.querySelectorAll('.section-head h2 span').forEach((span)=>{
+    gsap.fromTo(span, { yPercent:110 }, {
+      yPercent:0, duration:0.8, ease:'power3.out',
+      scrollTrigger:{ trigger: span, start:'top 90%' }
+    });
+  });
+  gsap.utils.toArray('.section-head p, .section-head .stamp').forEach(el=>{
+    gsap.fromTo(el, { opacity:0, y:14 }, {
+      opacity:1, y:0, duration:0.7, ease:'power2.out',
+      scrollTrigger:{ trigger: el, start:'top 92%' }
+    });
+  });
+
+  /* ---------- Dossier stagger reveal (visible by default, animated on top) ---------- */
+  document.querySelectorAll('.dossier').forEach((d,i)=>{
+    const rot = (i%2===0? -1:1) * (2+Math.random()*2);
+    gsap.fromTo(d, { y:70, opacity:0, rotate:0 }, {
+      y:0, opacity:1, rotate: rot, duration:0.8, ease:'power3.out', delay:i*0.12,
+      scrollTrigger:{ trigger:'.dossier-row', start:'top 80%' }
+    });
+  });
+
+  /* ---------- Mission cards reveal ---------- */
+  gsap.utils.toArray('.mission-card').forEach((card)=>{
+    gsap.fromTo(card, { opacity:0, x: -30 }, {
+      opacity:1, x:0, duration:0.7, ease:'power2.out',
+      scrollTrigger:{ trigger: card, start:'top 88%' }
+    });
+  });
+
+  /* ---------- Closing reveal ---------- */
+  gsap.fromTo('#closing h2', { opacity:0, y:30 }, {
+    opacity:1, y:0, duration:0.9, ease:'power2.out',
+    scrollTrigger:{ trigger:'#closing', start:'top 75%' }
+  });
+} else {
+  // No GSAP: reveal the hero copy as soon as the timeline section is scrolled to.
+  window.addEventListener('scroll', playType, { once:true, passive:true });
+  document.querySelectorAll('.dossier').forEach((d,i)=>{
+    d.style.transform = `rotate(${(i%2===0? -1:1) * (2+Math.random()*2)}deg)`;
+  });
+}
+
+/* ---------- Mobile: tone down floaters ---------- */
+if(window.innerWidth < 768){
+  document.querySelectorAll('.floater').forEach(f=> f.style.display='none');
+}
+</script>
+</body>
+</html>
