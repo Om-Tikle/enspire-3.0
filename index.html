@@ -23,19 +23,19 @@
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
-  html{ background:var(--void); scroll-behavior:smooth; }
+  html{ background:var(--void); scroll-behavior:smooth; cursor:none; }
   body{
     background: transparent;
     color:var(--text);
     font-family:'Space Grotesk', sans-serif;
     overflow-x:hidden;
-    cursor: default;
+    cursor: none;
   }
   ::selection{ background:var(--signal); color:var(--void); }
 
   .mono{ font-family:'IBM Plex Mono', monospace; }
 
-  a{ color:inherit; text-decoration:none; }
+  a, button, [role="button"]{ color:inherit; text-decoration:none; cursor:none !important; }
 
   /* ---------- scanline / grain overlay ---------- */
   .grain{
@@ -622,10 +622,45 @@
     100% { height: 100%; }
   }
 
+  /* ================= CUSTOM CURSOR ================= */
+  .cursor-trail {
+    position: fixed;
+    top: 0; left: 0;
+    width: 6px; height: 6px;
+    background: var(--signal);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    box-shadow: 0 0 8px 2px rgba(77,255,161,0.6);
+    mix-blend-mode: screen;
+  }
+  #custom-cursor {
+    position: fixed;
+    top: -20px; left: -20px; /* Hidden initially */
+    width: 6px; height: 6px;
+    background: var(--signal);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100000;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px 3px rgba(77,255,161,0.9), 0 0 25px 8px rgba(77,255,161,0.5);
+    transition: width 0.15s ease, height 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    mix-blend-mode: screen;
+  }
+  #custom-cursor.hovering {
+    width: 35px; height: 35px;
+    background: transparent;
+    border: 1px solid var(--signal);
+    box-shadow: 0 0 15px 2px rgba(77,255,161,0.5) inset, 0 0 15px 2px rgba(77,255,161,0.5);
+  }
+
   :focus-visible{ outline:2px solid var(--signal); outline-offset:3px; }
 </style>
 </head>
 <body>
+
+<!-- CUSTOM CURSOR -->
+<div id="custom-cursor"></div>
 
 <div id="preloader">
   <div class="line mono" id="pre-line">CONNECTING TO TVA MAINFRAME<span class="cursor-blink"></span></div>
@@ -1304,6 +1339,66 @@ if(HAS_GSAP){
 if(window.innerWidth < 768){
   document.querySelectorAll('.floater').forEach(f=> f.style.display='none');
 }
+</script>
+
+<script>
+  // ---- Custom Cursor JS ----
+  const cursor = document.getElementById('custom-cursor');
+  let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+  let cursorX = mouseX, cursorY = mouseY;
+  
+  // Create Trail Dots
+  const trailCount = 40; // Increased for a smooth, continuous long tail
+  const trails = [];
+  for(let i=0; i<trailCount; i++){
+    let dot = document.createElement('div');
+    dot.className = 'cursor-trail';
+    let ratio = (trailCount - i) / trailCount;
+    dot.style.opacity = ratio * 0.7;
+    dot.style.transform = `translate(-50%, -50%) scale(${ratio})`;
+    document.body.appendChild(dot);
+    trails.push(dot);
+  }
+  
+  // History buffer for 2 seconds at 60fps (120 frames)
+  const history = Array(120).fill({x: mouseX, y: mouseY});
+  
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  // Smooth follow animation
+  function renderCursor() {
+    cursorX += (mouseX - cursorX) * 0.35; 
+    cursorY += (mouseY - cursorY) * 0.35;
+    if(cursor) {
+      cursor.style.left = cursorX + 'px';
+      cursor.style.top = cursorY + 'px';
+    }
+
+    // Trail logic: Record current position into history
+    history.unshift({ x: cursorX, y: cursorY });
+    if(history.length > 120) history.pop();
+
+    // Distribute trail dots along the 2-second history
+    for(let i=0; i<trailCount; i++){
+      let historyIndex = Math.floor((i / trailCount) * (history.length - 1));
+      let pos = history[historyIndex];
+      trails[i].style.left = pos.x + 'px';
+      trails[i].style.top = pos.y + 'px';
+    }
+
+    requestAnimationFrame(renderCursor);
+  }
+  requestAnimationFrame(renderCursor);
+
+  // Hover states for links and buttons
+  const interactables = document.querySelectorAll('a, button, [role="button"]');
+  interactables.forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+  });
 </script>
 </body>
 </html>
