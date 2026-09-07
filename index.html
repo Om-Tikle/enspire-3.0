@@ -572,6 +572,56 @@
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
 
+  /* ================= BACKGROUND AUDIO BUTTON ================= */
+  .audio-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(8, 15, 12, 0.88);
+    border: 1px solid rgba(77, 255, 161, 0.4);
+    color: var(--signal);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em;
+    padding: 8px 14px;
+    border-radius: 40px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(77, 255, 161, 0.15);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.5s ease;
+  }
+  .audio-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--signal);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 25px rgba(77, 255, 161, 0.3);
+  }
+  .audio-btn.muted {
+    border-color: rgba(159, 179, 171, 0.3);
+    color: var(--ash);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  }
+  .sound-bars {
+    display: inline-flex; align-items: flex-end; gap: 2px; height: 12px;
+  }
+  .sound-bars span {
+    width: 2px; height: 100%; background: var(--signal);
+    border-radius: 1px;
+    animation: soundWave 1.2s infinite ease-in-out alternate;
+  }
+  .sound-bars span:nth-child(1) { animation-delay: 0.1s; height: 60%; }
+  .sound-bars span:nth-child(2) { animation-delay: 0.3s; height: 100%; }
+  .sound-bars span:nth-child(3) { animation-delay: 0.5s; height: 40%; }
+
+  .audio-btn.muted .sound-bars span {
+    animation: none !important;
+    height: 30% !important;
+    background: var(--ash) !important;
+  }
+
+  @keyframes soundWave {
+    0% { height: 20%; }
+    100% { height: 100%; }
+  }
+
   :focus-visible{ outline:2px solid var(--signal); outline-offset:3px; }
 </style>
 </head>
@@ -602,6 +652,20 @@
   <button id="reveal-sound" class="mono">🔇 TAP FOR SOUND</button>
   <button id="reveal-skip" class="mono">SKIP INTRO →</button>
 </div>
+
+<!-- CONTINUOUS BACKGROUND AUDIO (TVA THEME) -->
+<audio id="bg-audio" loop preload="auto">
+  <source src="assets/LOKI%20Season%202%20EPISODE%206%20END%20CREDITS%20Theme%20%20Natalie%20Holt%20%20Epic%20Version%20-%20Jamie%20Evans%20Music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- AUDIO CONTROL WIDGET (Fixed Bottom Right) -->
+<button id="audio-toggle" class="audio-btn mono" aria-label="Toggle background audio" style="opacity:0; pointer-events:none;">
+  <span class="audio-icon">🔊</span>
+  <span class="audio-label">TVA THEME</span>
+  <span class="sound-bars">
+    <span></span><span></span><span></span>
+  </span>
+</button>
 
 <div class="grain"></div>
 <div class="vignette"></div>
@@ -862,6 +926,60 @@ setTimeout(dismissPreloader, 2500); // guaranteed unlock no matter what
   const skipBtn  = document.getElementById('reveal-skip');
   const soundBtn = document.getElementById('reveal-sound');
 
+  const bgAudio    = document.getElementById('bg-audio');
+  if (bgAudio) bgAudio.volume = 0.6;
+  const audioBtn   = document.getElementById('audio-toggle');
+  const audioIcon  = audioBtn ? audioBtn.querySelector('.audio-icon') : null;
+  const audioLabel = audioBtn ? audioBtn.querySelector('.audio-label') : null;
+
+  function updateAudioUI(isPlaying) {
+    if (!audioBtn) return;
+    if (isPlaying) {
+      audioBtn.classList.remove('muted');
+      if (audioIcon) audioIcon.textContent = '🔊';
+      if (audioLabel) audioLabel.textContent = 'TVA THEME';
+    } else {
+      audioBtn.classList.add('muted');
+      if (audioIcon) audioIcon.textContent = '🔇';
+      if (audioLabel) audioLabel.textContent = 'MUTED';
+    }
+  }
+
+  function playBgAudio() {
+    if (!bgAudio) return;
+    bgAudio.volume = 0.6;
+    if (audioBtn) {
+      audioBtn.style.opacity = '1';
+      audioBtn.style.pointerEvents = 'auto';
+    }
+    
+    // Play strictly after intro video is dismissed
+    bgAudio.play().then(() => {
+      updateAudioUI(true);
+    }).catch(err => {
+      console.log('Audio playback waiting for user gesture:', err);
+      updateAudioUI(false);
+      const unlockOnInteraction = () => {
+        bgAudio.play().then(() => updateAudioUI(true)).catch(() => {});
+        document.removeEventListener('click', unlockOnInteraction);
+      };
+      document.addEventListener('click', unlockOnInteraction, { once: true });
+    });
+  }
+
+  if (audioBtn) {
+    audioBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!bgAudio) return;
+      if (bgAudio.paused) {
+        bgAudio.play().then(() => updateAudioUI(true)).catch(() => {});
+      } else {
+        bgAudio.pause();
+        updateAudioUI(false);
+      }
+    });
+  }
+
   /* Show nav + college header once the intro is done. */
   function revealSite(){
     // Restore scroll
@@ -878,6 +996,7 @@ setTimeout(dismissPreloader, 2500); // guaranteed unlock no matter what
     setTimeout(()=>{ revealEl.style.display = 'none'; }, 650);
     try{ videoEl.pause(); }catch(e){}
     revealSite();
+    playBgAudio();
   }
 
   // Play slightly faster + muted (required for autoplay).
